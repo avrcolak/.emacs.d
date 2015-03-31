@@ -1,9 +1,11 @@
 ;;; A simple rc to customize Emacs' UI to my tastes.
 
 ;;; Declutter the UI.
-(when window-system (tool-bar-mode -1))
-(menu-bar-mode -1)
-;; (scroll-bar-mode -1)
+(setq default-frame-alist
+      '((tool-bar-lines . 0)
+        (menu-bar-lines . 0)
+        (vertical-scroll-bars . right)))
+
 (setq inhibit-startup-screen t)
 
 ;;; By default Emacs rings the bell on end of buffer.
@@ -97,6 +99,9 @@
 ;;; As does being asked for confirmation when opening large files.
 (setq large-file-warning-threshold 100000000)
 
+;;; ElDoc uses the minibuffer to prompt parameter lists and docstrings
+;;; for Emacs Lisp objects, and also generally (e.g. Clojure's nrepl
+;;; uses ElDoc).
 (add-hook 'emacs-lisp-mode-hook 'turn-on-eldoc-mode)
 (add-hook 'lisp-interaction-mode-hook 'turn-on-eldoc-mode)
 (add-hook 'ielm-mode-hook 'turn-on-eldoc-mode)
@@ -116,4 +121,3 @@
 
 ;;; Assume Postgres syntax for highlighting SQL.
 (add-hook 'sql-mode-hook 'sql-highlight-postgres-keywords)
-
