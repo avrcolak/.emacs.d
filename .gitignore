@@ -1,0 +1,8 @@
+# .emacs.d is mostly noise. 
+/**
+!init.el
+!lisp/
+!lisp/**
+!.gitignore
+!README.txt
+!LICENSE.txt
