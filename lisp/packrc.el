@@ -2,7 +2,8 @@
 ;;; repeatable way.
 
 (let ((default-directory "~/.emacs.d/elpa"))
-  (normal-top-level-add-subdirs-to-load-path))
+  (when (file-exists-p default-directory)
+    (normal-top-level-add-subdirs-to-load-path)))
 
 ;; For Emacs Lisp not managed by Emacs' package system.
 (add-to-list 'load-path "~/.emacs.d/non-elpa")
@@ -11,6 +12,7 @@
   (setq package-archives '(("gnu" . "http://elpa.gnu.org/packages/")
                            ("marmalade" . "http://marmalade-repo.org/packages/")
                            ("melpa" . "http://melpa.milkbox.net/packages/")))
+  (setq package-enable-at-startup nil)
   (package-initialize)
   (when (not package-archive-contents)
     (package-refresh-contents))
