@@ -2,15 +2,15 @@
 ;;; loaded Elisp files.
 
 ;;; Save customizations somewhere else.
-(setq custom-file "~/.emacs.d/customrc.el")
-(load custom-file)
+(setq custom-file "~/.emacs.d/.custom.el")
+(when (file-exists-p custom-file) (load custom-file))
 
 (add-to-list 'load-path "~/.emacs.d/lisp")
 (load "yard.el")
 (load "osrc.el")
+(load "packrc.el")
 (load "uirc.el")
 (load "editrc.el")
-(load "packrc.el")
 ;; (load "cedetrc.el")
 (load "geiserrc.el")
 (load "gambitrc.el")
