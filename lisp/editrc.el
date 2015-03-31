@@ -23,20 +23,22 @@
 (add-hook 'java-mode-hook 'subword-mode)
 
 ;;; Paredit for all the s-expression language modes.
-(dolist (mode-hook '(clojure-mode-hook
-                     emacs-lisp-mode-hook
-                     inferior-lisp-mode-hook
-                     lisp-interaction-mode-hook
-                     ielm-mode-hook
-                     lisp-mode-hook
-                     cider-repl-mode-hook
-                     inferior-scheme-mode-hook
-                     scheme-mode-hook))
-  (add-hook mode-hook 'paredit-mode))
+(when (require 'paredit nil t)
+  (dolist (mode-hook '(clojure-mode-hook
+                       emacs-lisp-mode-hook
+                       inferior-lisp-mode-hook
+                       lisp-interaction-mode-hook
+                       ielm-mode-hook
+                       lisp-mode-hook
+                       cider-repl-mode-hook
+                       inferior-scheme-mode-hook
+                       scheme-mode-hook))
+    (add-hook mode-hook 'paredit-mode)))
 
 ;;; Redshank refactoring for Common Lisp.
-(add-hook 'lisp-mode-hook 'redshank-mode)
-(add-hook 'inferior-lisp-mode-hook 'redshank-mode)
+(when (require 'redshank nil t)
+  (add-hook 'lisp-mode-hook 'redshank-mode)
+  (add-hook 'inferior-lisp-mode-hook 'redshank-mode))
 
 ;;; Use buffer local 'lisp-indent-function values corresponding to the
 ;;; mode.
