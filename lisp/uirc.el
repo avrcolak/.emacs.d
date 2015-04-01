@@ -42,8 +42,9 @@
 (icomplete-mode t)
 
 ;;; Likewise for executing commands.
-(when (locate-library "smex")
-  (autoload 'smex "smex" "Smex stub.")
+(when (condition-case nil
+          (require 'smex nil t)
+        (error nil))
   (global-set-key (kbd "M-x") 'smex)
   (global-set-key (kbd "M-X") 'smex-major-mode-commands))
 
@@ -54,11 +55,12 @@
 (global-set-key (kbd "C-c p") 'proced)
 (global-set-key (kbd "C-c f") 'find-function)
 (global-set-key (kbd "C-c d") 'yard-toggle-window-dedication)
-(global-set-key (kbd "C-x o") 'switch-window)
 (define-key emacs-lisp-mode-map (kbd "M-.") 'find-function-at-point)
 
-;;; Less finger travel this way.
-(setq switch-window-shortcut-style 'qwerty)
+(when (require 'switch-window nil t)
+  (global-set-key (kbd "C-x o") 'switch-window)
+  ;; Less finger travel this way.
+  (setq switch-window-shortcut-style 'qwerty))
 
 ;;; The default escape character is C-c, but C-c is also the usual
 ;;; control sequence for SIGINT. C-x, by contrast, is just a shell
