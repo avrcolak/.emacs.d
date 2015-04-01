@@ -5,8 +5,9 @@
 ;;; SLIME signals an error on load when loaded with a sufficiently old
 ;;; version of Emacs, which stops the rest of Emacs'
 ;;; initialization. Failing silently is preferrable.
-(when (and (> emacs-major-version 22)
-           (require 'slime nil t))
+(when (condition-case nil
+          (require 'slime nil t)
+        (error nil))
 
   ;; Use M-x slime with a negative prefix to choose between
   ;; implementations i.e. M-- M-x slime.
