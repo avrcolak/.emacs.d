@@ -25,3 +25,6 @@
 (load "gambit-rc")
 (load "moz-rc")
 (load "markdown-rc")
+(load "go-mode-rc")
+(load "go-complete-rc")
+(load "go-eldoc-rc")
