@@ -5,5 +5,5 @@
 !lisp/*rc.el
 !lisp/yard.el
 !.gitignore
-!README.txt
+!README.md
 !LICENSE.txt
