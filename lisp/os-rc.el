@@ -1,11 +1,7 @@
 ;;; A simple rc to configure Emacs' interface with the host OS.
 
-;;; No Emacs droppings.
-(setq backup-directory-alist
-      `((".*" . ,temporary-file-directory)))
-
-(setq auto-save-file-name-transforms
-      `((".*" ,temporary-file-directory t)))
+;;; No ad-hoc (sometimes redundant) versioning.
+(setq make-backup-files nil)
 
 ;;; Use clobbering sessions.
 (setq desktop-dirname "~/.emacs.d/"
@@ -34,14 +30,12 @@
 ;;; Non system site-lisp for a system Emacs.
 (add-to-list 'load-path "/usr/local/share/emacs/site-lisp")
 
-(prefer-coding-system 'utf-8)
+;;; Packages should be loadable without the package feature.
+(let ((default-directory "~/.emacs.d/elpa"))
+  (when (file-exists-p default-directory)
+    (normal-top-level-add-subdirs-to-load-path)))
 
-;;; browse-url-firefox does not do the right thing on OS X. Furthemore
-;;; Safari is preferred.
-(if (eq system-type 'darwin)
-    (setq browse-url-generic-program "open"
-          browse-url-generic-args '("-a" "safari"))
-    (setq browse-url-browser-function 'browse-url-firefox))
+(prefer-coding-system 'utf-8)
 
 ;;; More useful is to reuse the existing frame when responding to
 ;;; GNUstep or Cocoa open file events.

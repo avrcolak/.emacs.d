@@ -2,7 +2,8 @@
 /**
 !init.el
 !lisp/
-!lisp/**
+!lisp/*rc.el
+!lisp/yard.el
 !.gitignore
 !README.txt
 !LICENSE.txt

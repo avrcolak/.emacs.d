@@ -1,20 +1,20 @@
 ;;; The Emacs Lisp YARD: Yet Another Run command Directory. Some
-;;; useful Emacs Lisp functions for my Emacs rc files. Any
-;;; similarities to snippets of elisp found around the web may or may
-;;; not be accidental.
+;;; useful Emacs Lisp functions for my Emacs rc files.
 
-(defun yard-directory-sub-directories (dirs) 
-  "Returns a list of the subdirectories for each directory in dirs."
+(defun yard-find-subdirectories (directories) 
+  "Returns a list of the subdirectories for each directory in DIRECTORIES."
   (delq nil
         (mapcar (lambda (x) (and (file-directory-p x) x))
                 (apply 'append
-                       (let (sub-dirs)
-                         (dolist (dir dirs sub-dirs)
-                           (setq sub-dirs
-                                 (cons (directory-files dir t "[[:word:]]+")
-                                       sub-dirs))))))))
+                       (let (subdirectories '())
+                         (dolist (directory directories subdirectories)
+                           (setq subdirectories
+                                 (cons (directory-files directory
+                                                        t
+                                                        "[[:word:]]+")
+                                       subdirectories))))))))
 
-;;; Helpers for setting up Lisp indentation.
+;;; Helpers for setting up buffer local Lisp indentation.
 (defun yard-set-lisp-indent (indent-function)
   (set (make-local-variable 'lisp-indent-function) indent-function))
 
@@ -24,7 +24,7 @@
 (defun yard-set-common-lisp-indent ()
   (yard-set-lisp-indent 'common-lisp-indent-function))
 
-;;; Functions for opening a file as root with tramp.
+;;; System for opening a file as root with tramp.
 (defvar yard-root-find-file-prefix "/sudo:root@localhost:"
   "The prefix used to open a file with `yard-root-find-file'.")
 
@@ -40,7 +40,7 @@
   `yard-root-find-file-prefix' to the selected file name for
   access with tramp."
   (interactive)
-  (require 'tramp)
+  (eval-when-compile (require 'tramp))
   (let* ((file-name-history yard-root-find-file-history)
          (name (or buffer-file-name default-directory))
          (tramp (and (tramp-tramp-file-p name)
@@ -68,7 +68,7 @@ node `Dedicated Windows'."
              window)))
 
 (defun yard-slime-send-dwim (arg)
-  "Send the code form you want to SLIME (Do What I Mean)
+  "Send the code form you want to SLIME (Do What I Mean).
 If the region is active it is copied to the SLIME REPL.
 Else, if the point is at an opening paren the sexp immediately
 following the point is copied to the SLIME REPL.
@@ -138,44 +138,31 @@ enables the specified minor modes."
           (if (string-match (car entry) name)
               (funcall (cdr entry))))))))
 
-(defvar yard-super-meta-mode-syntax-table
+(defvar yard-meta-mode-syntax-table
   (let ((table (make-syntax-table lisp-mode-syntax-table)))
     (modify-syntax-entry ?\@ "'" table)
     (modify-syntax-entry ?\$ "'" table)
     (modify-syntax-entry ?\! "'" table)
-    (modify-syntax-entry ?\% "'" table)
-    (modify-syntax-entry ?\? "'" table)
     (modify-syntax-entry ?\{ "(}" table)
     (modify-syntax-entry ?\} "){" table)
     (modify-syntax-entry ?\[ "(]" table)
     (modify-syntax-entry ?\] ")[" table)
     table)
-  "Syntax table used in `yard-super-meta-mode'.")
+  "Syntax table used in `yard-meta-mode'.")
 
-(define-derived-mode yard-super-meta-mode lisp-mode
-  "Super Meta"
-  "Major mode for editing documents using the Super Meta embedded
-  DSL (as Embedded in Common Lisp)."
-  :syntax-table yard-super-meta-mode-syntax-table
+(define-derived-mode yard-meta-mode lisp-mode
+  "Meta"
+  "Major mode for editing documents using the Meta embedded
+DSL (as Embedded in Common Lisp)."
+  :syntax-table yard-meta-mode-syntax-table
   (define-key paredit-mode-map
     (kbd "{") 'paredit-open-curly)
   (define-key paredit-mode-map
     (kbd "}") 'paredit-close-curly))
 
-(defvar yard-terminal-counter 1)
-
-(defadvice term (after yard-rename-term-buffer first () disable)
-  "Rename the buffer created by ``term'' in order to support
-multiple buffers created this way."
-  (rename-buffer (concat "*terminal-"
-                         (number-to-string yard-terminal-counter)
-                         "*")
-                 t)
-  (incf yard-terminal-counter))
-
 (defun yard-sort-words (reverse beginning end)
   "Sort words in region alphabetically. Prefixed with negative
-\\[universal-argument], sorts in referse.
+\\[universal-argument], sorts in reverse.
 
 The variable `sort-fold-case' determines whether alphabetic case
 affects the sort order.
@@ -187,3 +174,88 @@ See `sort-regexp-fields'."
 (defun yard-get-environment-path ()
   "Return a list of the paths in the environment variable PATH."
   (split-string (getenv "PATH") path-separator))
+
+(defun yard-package-install (feature)
+  (when (require 'package nil t)
+    (unless package--initialized
+      (package-initialize)
+      (add-to-list 'package-archives
+                   '("melpa-stable" . "http://stable.melpa.org/packages/") t))
+    (unless package-archive-contents
+      (package-refresh-contents))
+    (unless (package-installed-p feature)
+      (ignore-errors (package-install feature)))))
+
+(defun yard-require (feature &optional filename)
+  "If FEATURE is not loaded, load it as if with `require'. If
+unsuccessful, install the package FEATURE as with
+`package-install' and try again.
+
+When FEATURE is successfuly loaded the return value is FEATURE,
+otherwise nil."
+  (or (require feature filename t)
+      (and (yard-package-install feature)
+           (require feature filename t))))
+
+(defun yard-locate-feature (feature)
+  "Show the precise filename which provides FEATURE. If
+unsuccessful, require FEATURE as with `yard-require' and try
+again.
+
+If FEATURE cannot be located, the return value is nil."
+  ;; Emacs Lisp doesn't have flet.
+  (let ((locate-feature
+         (lambda (feature)
+           (find-lisp-object-file-name feature
+                                       (symbol-function feature)))))
+    (or (funcall locate-feature feature)
+        (and (yard-require feature)
+             (funcall locate-feature feature)))))
+
+(defun yard-optimistically-locate-feature (feature &optional filename)
+  "If FILENAME is nil (which is the default) Locate FEATURE as
+with `locate-library' using the FEATURE's symbol name, otherwise,
+use FILENAME. If unsuccessful, install the package FEATURE as
+with `yard-package-install' and try again.
+
+When successful show the precise filename where FEATURE is
+assumed to be provided, otherwise nil."
+  (let ((feature-name (or filename (symbol-name feature))))
+    (or (locate-library feature-name)
+        (and (yard-package-install feature)
+             (locate-library feature-name)))))
+
+(defmacro yard-flet (bindings &rest body)
+  "Make temporary dynamic function bindings as if by `fset'.
+
+\(fn ((FUNC ARGLIST BODY...) ...) FORM...)"
+  (let ((symbol-functions-symbol (make-symbol "symbol-functions")))
+    `(let ((,symbol-functions-symbol
+            (list ,@(mapcar (lambda (binding)
+                              (let ((func (car binding)))
+                                `(cons ',func (symbol-function ',func))))
+                            bindings))))
+       ,@(mapcar (lambda (binding)
+                   (let ((func (car binding))
+                         (arglist (cadr binding))
+                         (body (cddr binding)))
+                     `(fset ',func (lambda ,arglist ,@body))))
+                 bindings)
+       (prog1
+           (progn ,@body)
+         (dolist (binding ,symbol-functions-symbol)
+           (fset (car binding) (cdr binding)))))))
+
+(defun yard-do-nothing ()
+  "Does nothing and returns t."
+  (interactive) t)
+
+(defun yard-quit-other-window (&optional kill)
+  "Quits the other window as if by `quit-window'"
+  (interactive)
+  (quit-window kill (next-window)))
+
+(defun yard-add-hooks (hooks function)
+  "Add to the value of each hook in HOOKS the function FUNCTION
+as if by `add-hook'."
+  (dolist (hook hooks) (add-hook hook function)))
