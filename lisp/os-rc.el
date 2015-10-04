@@ -44,6 +44,3 @@
 ;;; Oddly, the environment PATH and exec-path may differ after loading
 ;;; e.g. on Mac OS X.
 (setq exec-path (delete-dups (append (yard-get-environment-path) exec-path)))
-
-(global-set-key (kbd "C-c r") 'yard-root-find-file)
-(global-set-key (kbd "C-c c") 'save-buffers-kill-emacs)

@@ -5,11 +5,6 @@
               indent-tabs-mode nil)
 (setq tab-stop-list (number-sequence 4 120 4))
 
-;;; Turn on some "confusing" commands.
-(put `upcase-region `disabled nil)
-(put `downcase-region `disabled nil)
-(put 'dired-find-alternate-file 'disabled nil)
-
 ;;; "stroustrup" and "k&r" in lieu of "gnu".
 (setq-default c-default-style '((java-mode . "java")
                                 (awk-mode . "awk")

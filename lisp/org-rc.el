@@ -35,4 +35,9 @@
   (add-hook 'org-shiftdown-final-hook 'windmove-down)
   (add-hook 'org-shiftright-final-hook 'windmove-right)
 
-  (setq org-completion-use-ido t))
+  (setq org-completion-use-ido t)
+
+  (when (package-installed-p 'org-plus-contrib) ; Provides org.
+    (add-to-list 'load-path
+                 (file-name-directory (locate-library "org-contribdir")))
+    (require 'org-drill nil nil)))
