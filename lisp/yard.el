@@ -22,34 +22,16 @@
   (yard-set-lisp-indent 'common-lisp-indent-function))
 
 ;;; System for opening a file as root with tramp.
-(defvar yard-root-find-file-prefix "/sudo:root@localhost:"
-  "The prefix used to open a file with `yard-root-find-file'.")
-
-(defvar yard-root-find-file-history nil
-  "A list holding files previously opened with `yard-root-find-file'.")
-
 (defvar yard-root-find-file-hook nil
-  "A hook for functions to run after a file has been opened with
-  `yard-root-find-file'.")
+  "List of functions to be called after a buffer is loaded from a
+file with `yard-root-find-file'.")
 
 (defun yard-root-find-file ()
-  "Open a file as the root user. Prepends
-  `yard-root-find-file-prefix' to the selected file name for
-  access with tramp."
+  "Edit file as the root user."
   (interactive)
-  (require 'tramp)
-  (let* ((file-name-history yard-root-find-file-history)
-         (name (or buffer-file-name default-directory))
-         (tramp (and (tramp-tramp-file-p name)
-                     (tramp-dissect-file-name name)))
-         path dir file)
-    (when tramp
-      (setq path (tramp-file-name-localname tramp)
-            dir (file-name-directory path)))
-    (when (setq file (read-file-name "Find file (root): " dir path))
-      (find-file (concat yard-root-find-file-prefix file))
-      (setq yard-root-find-file-history file-name-history)
-      (run-hooks yard-root-find-file-hook))))
+  (find-file (concat "/sudo:root@localhost:"
+                     (read-file-name "Find file (as root): ")))
+  (run-hooks yard-root-find-file-hook))
 
 (defun yard-toggle-window-dedication ()
   "Toggles a window from dedicated to not dedicated. See Info
@@ -64,13 +46,15 @@ node `Dedicated Windows'."
              window)))
 
 (defun yard-slime-send-dwim (arg)
-  "Send the code form you want to SLIME (Do What I Mean).
-If the region is active it is copied to the SLIME REPL.  Else, if
-the point is at an opening paren the sexp immediately following
-the point is copied to the SLIME REPL.  Else, if the point is
-directly after a closing paren, the sexp immediately preceding
-the point is copied to the SLIME REPL.  Else, the top level sexp
-enclosing the point is copied to the SLIME REPL."
+  "Send the code form you want to the buffer named by
+`slime-output-buffer' (Do What I Mean). If a region is active, it
+is saved and yanked to the buffer. Else, if the point is at an
+opening paren, the sexp immediately following the point is saved
+and yanked. Else, if the point is directly after a closing paren,
+the sexp immediately preceding the point is saved and yanked.
+Else, the top level sexp enclosing the point is saved and yanked.
+
+With ARG, evaluate the resulting output buffer input string."
   (interactive "P")
   (save-excursion
     (cond (mark-active
@@ -88,14 +72,13 @@ enclosing the point is copied to the SLIME REPL."
                               (point)))
                  (end (save-excursion (end-of-defun) (point))))
              (copy-region-as-kill beg end))))
-    (save-window-excursion
-      (switch-to-buffer (slime-output-buffer))
+      (switch-to-buffer-other-window (slime-output-buffer))
       (goto-char (point-max))
       (when (string-match "\n\\|" (car kill-ring))
         (slime-repl-newline-and-indent))
       (yank)
       (when arg
-        (slime-repl-return)))))
+        (slime-repl-return))))
 
 (defun yard-enclose-region-in-src-block ()
   (interactive)
@@ -195,20 +178,21 @@ otherwise nil."
       (and (yard-package-install feature)
            (require feature filename t))))
 
+(defun yard-locate-feature* (feature)
+  "Show the precise filename which provides FEATURE.
+
+If FEATURE cannot be located the return value is nil."
+  (find-lisp-object-file-name feature (symbol-function feature)))
+
 (defun yard-locate-feature (feature)
   "Show the precise filename which provides FEATURE. If
 unsuccessful, require FEATURE as with `yard-require' and try
 again.
 
 If FEATURE cannot be located, the return value is nil."
-  ;; Emacs Lisp doesn't have flet.
-  (let ((locate-feature
-         (lambda (feature)
-           (find-lisp-object-file-name feature
-                                       (symbol-function feature)))))
-    (or (funcall locate-feature feature)
-        (and (yard-require feature)
-             (funcall locate-feature feature)))))
+  (or (funcall yard-locate-feature* feature)
+      (and (yard-require feature)
+           (funcall yard-locate-feature* feature))))
 
 (defun yard-optimistically-locate-feature (feature &optional filename)
   "If FILENAME is nil (which is the default) Locate FEATURE as
