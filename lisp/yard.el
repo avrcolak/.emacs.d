@@ -5,14 +5,11 @@
   "Returns a list of the subdirectories for each directory in DIRECTORIES."
   (delq nil
         (mapcar (lambda (x) (and (file-directory-p x) x))
-                (apply 'append
-                       (let (subdirectories '())
-                         (dolist (directory directories subdirectories)
-                           (setq subdirectories
-                                 (cons (directory-files directory
-                                                        t
-                                                        "[[:word:]]+")
-                                       subdirectories))))))))
+                (let (subdirectories '())
+                  (dolist (directory directories subdirectories)
+                    (setq subdirectories
+                          (nconc (directory-files directory t "[[:word:]]+")
+                                 subdirectories)))))))
 
 ;;; Helpers for setting up buffer local Lisp indentation.
 (defun yard-set-lisp-indent (indent-function)
@@ -40,7 +37,7 @@
   `yard-root-find-file-prefix' to the selected file name for
   access with tramp."
   (interactive)
-  (eval-when-compile (require 'tramp))
+  (require 'tramp)
   (let* ((file-name-history yard-root-find-file-history)
          (name (or buffer-file-name default-directory))
          (tramp (and (tramp-tramp-file-p name)
@@ -54,7 +51,6 @@
       (setq yard-root-find-file-history file-name-history)
       (run-hooks yard-root-find-file-hook))))
 
-;;; Toggle window dedication to lock or pin a window.
 (defun yard-toggle-window-dedication ()
   "Toggles a window from dedicated to not dedicated. See Info
 node `Dedicated Windows'."
@@ -69,13 +65,12 @@ node `Dedicated Windows'."
 
 (defun yard-slime-send-dwim (arg)
   "Send the code form you want to SLIME (Do What I Mean).
-If the region is active it is copied to the SLIME REPL.
-Else, if the point is at an opening paren the sexp immediately
-following the point is copied to the SLIME REPL.
-Else, if the point directly after a closing paren, the sexp
-immediately preceding the point is copied to the SLIME REPL.
-Else, the top level sexp enclosing the point is copied to the
-SLIME REPL."
+If the region is active it is copied to the SLIME REPL.  Else, if
+the point is at an opening paren the sexp immediately following
+the point is copied to the SLIME REPL.  Else, if the point is
+directly after a closing paren, the sexp immediately preceding
+the point is copied to the SLIME REPL.  Else, the top level sexp
+enclosing the point is copied to the SLIME REPL."
   (interactive "P")
   (save-excursion
     (cond (mark-active
@@ -175,12 +170,15 @@ See `sort-regexp-fields'."
   "Return a list of the paths in the environment variable PATH."
   (split-string (getenv "PATH") path-separator))
 
+(defvar yard-package-archives
+  '(("melpa-stable" . "http://stable.melpa.org/packages/")
+    ("org" . "http://orgmode.org/elpa/")))
+
 (defun yard-package-install (feature)
   (when (require 'package nil t)
     (unless package--initialized
       (package-initialize)
-      (add-to-list 'package-archives
-                   '("melpa-stable" . "http://stable.melpa.org/packages/") t))
+      (setq package-archives (append yard-package-archives package-archives)))
     (unless package-archive-contents
       (package-refresh-contents))
     (unless (package-installed-p feature)
@@ -247,8 +245,13 @@ assumed to be provided, otherwise nil."
            (fset (car binding) (cdr binding)))))))
 
 (defun yard-do-nothing ()
-  "Does nothing and returns t."
+  "Does nothing and returns non-nil."
   (interactive) t)
+
+(defun yard-display-prefix (arg)
+  "Display the value of the raw prefix ARG."
+  (interactive "P")
+  (message "%s" arg))
 
 (defun yard-quit-other-window (&optional kill)
   "Quits the other window as if by `quit-window'"
@@ -259,3 +262,33 @@ assumed to be provided, otherwise nil."
   "Add to the value of each hook in HOOKS the function FUNCTION
 as if by `add-hook'."
   (dolist (hook hooks) (add-hook hook function)))
+
+;;; Facilities to make navigating Emacs Lisp more like navigating
+;;; Common Lisp with slime.
+(defun yard-push-find-symbol-stack () 
+  (ring-insert find-tag-marker-ring (point-marker)))
+
+(defun yard-pop-find-symbol-stack ()
+  (interactive)
+  (pop-tag-mark))
+
+(defun yard-find-symbol (symbol type)
+  (find-function-do-it symbol
+                       (if (eq type 'defun) nil)
+                       (lambda (buffer-or-name)
+                         (yard-push-find-symbol-stack)
+                         (switch-to-buffer buffer-or-name))))
+
+(defun yard-find-symbol-other-window (symbol type)
+  (save-selected-window
+    (find-function-do-it symbol
+                         (if (eq type 'defun) nil)
+                         'switch-to-buffer-other-window)))
+
+(defun yard-find-function-at-point (&optional other-window)
+  (interactive "P")
+  (let ((symbol (function-called-at-point)))
+    (when symbol
+      (if other-window
+          (yard-find-symbol-other-window symbol 'defun)
+        (yard-find-symbol symbol 'defun)))))
