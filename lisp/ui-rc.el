@@ -61,6 +61,17 @@
 ;;; Minibuffer tab completion.
 (icomplete-mode)
 
+(when (require 'ido nil t)
+  (ido-mode 1)
+  (ido-everywhere))
+
+;;; Slightly simplified by preferring ansi-term defaults.
+(when (require 'term nil t)
+  ;; Many programs (including grml zsh) (seem to) assume this
+  ;; behavior.
+  (setq term-scroll-to-bottom-on-output 'this)
+  (setq term-scroll-show-maximum-output t))
+
 ;;; Follow compile errors with tab.
 (add-hook 'compilation-mode-hook 'next-error-follow-minor-mode)
 
@@ -96,6 +107,7 @@
 
 (setq focus-follows-mouse t)
 (setq mouse-autoselect-window t)
+(setq mouse-yank-at-point t)
 
 (define-key emacs-lisp-mode-map (kbd "<C-S-mouse-1>")
   (lambda (event prefix-arg)
@@ -107,5 +119,6 @@ P")
 (define-key emacs-lisp-mode-map (kbd "<mouse-9>")
   'yard-pop-find-symbol-stack)
 
-(define-key help-mode-map (kbd "<mouse-8>") 'help-go-forward)
-(define-key help-mode-map (kbd "<mouse-9>") 'help-go-back)
+(when (require 'help-mode nil t)
+  (define-key help-mode-map (kbd "<mouse-8>") 'help-go-forward)
+  (define-key help-mode-map (kbd "<mouse-9>") 'help-go-back))

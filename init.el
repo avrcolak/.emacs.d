@@ -8,14 +8,16 @@
 
 (add-to-list 'load-path "~/.emacs.d/lisp")
 (load "yard")
+(setq load-path
+      (append (yard-find-subdirectories '("~/.emacs.d/lisp")) load-path))
 (load "os-rc")
 (load "ui-rc")
 (load "edit-rc")
-(load "ido-rc")
 (load "smex-rc")
 (load "ido-ubiquitous-rc")
 (load "switch-window-rc")
 (load "paredit-rc")
+(load "mouse-copy-rc")
 (load "term-rc")
 (load "org-rc")
 (load "slime-rc")

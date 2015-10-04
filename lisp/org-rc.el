@@ -1,6 +1,6 @@
 ;;; Simple rc to configure org.
 
-(when (yard-require 'org)
+(when (require 'org nil t)
   ;; Goodbye latex preview droppings!
   (setq org-latex-preview-ltxpng-directory "/tmp/org1000/")
 
@@ -37,7 +37,11 @@
 
   (setq org-completion-use-ido t)
 
-  (when (package-installed-p 'org-plus-contrib) ; Provides org.
+  ;; org-plus-contrib also provides (only) org, but with contribs.
+  (when (package-installed-p 'org-plus-contrib)
     (add-to-list 'load-path
                  (file-name-directory (locate-library "org-contribdir")))
-    (require 'org-drill nil nil)))
+    
+    ;; org-drill doesn't load it's dependencies.
+    (when (require 'cl nil t)
+      (require 'org-drill nil t))))
