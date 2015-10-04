@@ -18,7 +18,6 @@
 (load "switch-window-rc")
 (load "paredit-rc")
 (load "mouse-copy-rc")
-(load "term-rc")
 (load "org-rc")
 (load "slime-rc")
 (load "redshank-rc")
