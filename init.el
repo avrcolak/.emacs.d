@@ -21,7 +21,7 @@
                 "edit-rc"
                 "smex-rc"
                 "ido-ubiquitous-rc"
-                "switch-window-rc"
+                "ace-window-rc"
                 "paredit-rc"
                 "mouse-copy-rc"
                 "org-rc"
