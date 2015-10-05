@@ -1,7 +1,7 @@
 ;;; An Emacs initialization file. The heavy lifting is done in the
 ;;; loaded Emacs Lisp files.
 
-;;; Save customizations somewhere else.
+;; "The default is nil, which means to use your init file".
 (setq custom-file "~/.emacs.d/.custom.el")
 (when (file-exists-p custom-file)
   (load custom-file))
@@ -11,7 +11,7 @@
         ("org" . "http://orgmode.org/elpa/")))
 
 (add-to-list 'load-path "~/.emacs.d/lisp")
-(load "yard")
+(load "y")
 (setq load-path
       (append (y-find-subdirectories '("~/.emacs.d/lisp")) load-path))
 
