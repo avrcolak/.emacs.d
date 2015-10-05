@@ -1,51 +1,136 @@
-;;; The Emacs Lisp YARD: Yet Another Run command Directory. Some
-;;; useful Emacs Lisp functions for my Emacs rc files.
+;;; Y. Useful Emacs Lisp.
 
-(defun yard-find-subdirectories (directories) 
+(defmacro y-swap-vars (var1 var2)
+  "Swaps VAR1 and VAR2."
+  `(setq ,var1 (prog1 ,var2 (setq ,var2 ,var1))))
+
+(defun y-union (&rest sets)
+  "Returns the union of SETS."
+  (deletedups (apply #'nconc (mapcar (copy-sequence sets)))))
+
+(defun y-set-difference (minuend subtrahend)
+  (let ((minuend (copy-sequence minuend)))
+    (dolist (element subtrahend minuend) (delq element minuend))))
+
+(defun y-keys (alist)
+  (mapcar #'car alist))
+
+(defun y-assq-all (keys alist)
+  (delq nil (mapcar (lambda (key) (assq key alist)) keys)))
+
+(defmacro y-flet (bindings &rest body)
+  "Make temporary dynamic function bindings as if by `fset'.
+
+\(fn ((FUNC ARGLIST BODY...) ...) FORM...)"
+  (let ((symbol-functions-symbol (make-symbol "symbol-functions")))
+    `(let ((,symbol-functions-symbol
+            (list ,@(mapcar (lambda (binding)
+                              (let ((func (car binding)))
+                                `(cons ',func (symbol-function ',func))))
+                            bindings))))
+       ,@(mapcar (lambda (binding)
+                   (let ((func (car binding))
+                         (arglist (cadr binding))
+                         (body (cddr binding)))
+                     `(fset ',func (lambda ,arglist ,@body))))
+                 bindings)
+       (prog1
+           (progn ,@body)
+         (dolist (binding ,symbol-functions-symbol)
+           (fset (car binding) (cdr binding)))))))
+
+(defun y-add-hooks (hooks function)
+  "Add to the value of each hook in HOOKS the function FUNCTION
+as if by `add-hook'."
+  (dolist (hook hooks) (add-hook hook function)))
+
+(defun y-get-environment-path ()
+  "Return a list of the paths in the environment variable PATH."
+  (split-string (getenv "PATH") path-separator))
+
+(defun y-find-subdirectories (directories) 
   "Returns a list of the subdirectories for each directory in DIRECTORIES."
   (delq nil
-        (mapcar (lambda (x) (and (file-directory-p x) x))
+        (mapcar (lambda (name) (and (file-directory-p name) name))
                 (let (subdirectories '())
                   (dolist (directory directories subdirectories)
                     (setq subdirectories
                           (nconc (directory-files directory t "[[:word:]]+")
                                  subdirectories)))))))
 
-;;; Helpers for setting up buffer local Lisp indentation.
-(defun yard-set-lisp-indent (indent-function)
-  (set (make-local-variable 'lisp-indent-function) indent-function))
+(defun y-do-nothing ()
+  "Does nothing and returns non-nil."
+  (interactive) t)
 
-(defun yard-set-elisp-indent ()
-  (yard-set-lisp-indent 'lisp-indent-function))
+(defun y-display-prefix (arg)
+  "Display the value of the raw prefix ARG."
+  (interactive "P")
+  (message "%s" arg))
 
-(defun yard-set-common-lisp-indent ()
-  (yard-set-lisp-indent 'common-lisp-indent-function))
-
-;;; System for opening a file as root with tramp.
-(defvar yard-root-find-file-hook nil
-  "List of functions to be called after a buffer is loaded from a
-file with `yard-root-find-file'.")
-
-(defun yard-root-find-file ()
-  "Edit file as the root user."
+(defun y-quit-other-window (&optional kill)
+  "Quits the other window as if by `quit-window'"
   (interactive)
-  (find-file (concat "/sudo:root@localhost:"
-                     (read-file-name "Find file (as root): ")))
-  (run-hooks yard-root-find-file-hook))
+  (quit-window kill (next-window)))
 
-(defun yard-toggle-window-dedication ()
-  "Toggles a window from dedicated to not dedicated. See Info
-node `Dedicated Windows'."
+(defun y-sort-words (reverse beginning end)
+  "Sort words in region alphabetically. Prefixed with negative
+\\[universal-argument], sorts in reverse.
+
+The variable `sort-fold-case' determines whether alphabetic case
+affects the sort order.
+
+See `sort-regexp-fields'."
+  (interactive "*P\nr")
+  (sort-regexp-fields reverse "\\w+" "\\&" beginning end))
+
+(defun y-toggle-window-dedication ()
+  "Toggles whether the window is dedicated. See Info node
+`Dedicated Windows'."
   (interactive)
   (let ((window (selected-window)))
-    (set-window-dedicated-p window
-                            (not (window-dedicated-p window)))
+    (set-window-dedicated-p window (not (window-dedicated-p window)))
     (message (if (window-dedicated-p window)
                  "Window %s dedicated"
                "Window %s not dedicated")
              window)))
 
-(defun yard-slime-send-dwim (arg)
+(defun y-browse-url-no-switch (url &rest args)
+  "Like `browse-url', but ensure that input focus doesn't leave
+the current frame."
+  (interactive "i")
+  (let ((frame (selected-frame)))
+    (if (called-interactively-p)
+        (call-interactively 'browse-url)
+      (apply #'browse-url url args))
+    ;; HACK: At least one browser (Firefox) does not provide a way to
+    ;; remotley open a URL in the foreground, without the browser also
+    ;; stealing focus after a small delay. So, steal it back.
+    (sleep-for 0 500)
+    (select-frame-set-input-focus frame)))
+
+(defun y-slovnik-lookup ()
+  "Looks up the word at point on URL `http://slovnik.seznam.cz'"
+  (interactive)
+  (y-browse-url-no-switch (concat "http://slovnik.seznam.cz/cz-en/word/?q="
+                                     (url-encode-url (word-at-point)))))
+
+(defun y-enclose-region-in-src-block ()
+  "Enclose the lines in the active region with #+BEGIN_SRC and
+#+END_SRC."
+  (interactive)
+  (when (region-active-p)
+    (let ((beginning (region-beginning))
+          (end (region-end)))
+      (when (> beginning end) (y-swap-vars beginning end))
+      (goto-char end)
+      (end-of-line)
+      (insert "\n#+END_SRC")
+      (goto-char beginning)
+      (beginning-of-line)
+      (insert "#+BEGIN_SRC\n")
+      (backward-char))))
+
+(defun y-slime-send-dwim (arg)
   "Send the code form you want to the buffer named by
 `slime-output-buffer' (Do What I Mean). If a region is active, it
 is saved and yanked to the buffer. Else, if the point is at an
@@ -80,28 +165,37 @@ With ARG, evaluate the resulting output buffer input string."
       (when arg
         (slime-repl-return))))
 
-(defun yard-enclose-region-in-src-block ()
-  (interactive)
-  (let* ((beg (if (region-active-p) (region-beginning) (point)))
-         (end (if (region-active-p) (region-end) (point))))
-    (goto-char end)
-    (unless (eq (char-before) ?\n) (insert "\n"))
-    (insert "#+END_SRC\n")
-    (goto-char beg)
-    (beginning-of-line)
-    (insert "#+BEGIN_SRC\n")
-    (backward-char)))
+(defun y-set-lisp-indent (indent-function)
+  "Shadows `lisp-indent-function' with a buffer local variable
+set to INDENT-FUNCTION."
+  (set (make-local-variable 'lisp-indent-function) indent-function))
 
-;;; Automatic minor modes.
-(defvar yard-auto-minor-mode-alist ()
+(defun y-set-elisp-indent ()
+  (y-set-lisp-indent 'lisp-indent-function))
+
+(defun y-set-common-lisp-indent ()
+  (y-set-lisp-indent 'common-lisp-indent-function))
+
+(defvar y-root-find-file-hook nil
+  "List of functions to be called after a buffer is loaded from a
+file with `y-root-find-file'.")
+
+(defun y-root-find-file ()
+  "Edit file as the root user."
+  (interactive)
+  (find-file (concat "/sudo:root@localhost:"
+                     (read-file-name "Find file (as root): ")))
+  (run-hooks y-root-find-file-hook))
+
+(defvar y-auto-minor-mode-alist ()
   "Alist of file name patterns vs corresponding minor mode
 functions. Closely mimics `auto-mode-alist'.")
 
-(defun yard-set-auto-minor-mode ()
+(defun y-set-auto-minor-mode ()
   "Select minor modes appropriate for curent buffer.
 
 To find the right minor modes, this function compares the
-filename against all entries in `yard-auto-minor-mode-alist' and
+filename against all entries in `y-auto-minor-mode-alist' and
 enables the specified minor modes."
   (when buffer-file-name
     (let ((remote-id (file-remote-p buffer-file-name))
@@ -111,12 +205,12 @@ enables the specified minor modes."
       (when (and (stringp remote-id)
                  (string-match-p (regexp-quote remote-id) name))
         (setq name (substring name (match-end 0))))
-      (dolist (entry yard-auto-minor-mode-alist)
+      (dolist (entry y-auto-minor-mode-alist)
         (when (and (car entry) (cdr entry))
           (if (string-match (car entry) name)
               (funcall (cdr entry))))))))
 
-(defvar yard-meta-mode-syntax-table
+(defvar y-meta-mode-syntax-table
   (let ((table (make-syntax-table lisp-mode-syntax-table)))
     (modify-syntax-entry ?\@ "'" table)
     (modify-syntax-entry ?\$ "'" table)
@@ -126,48 +220,31 @@ enables the specified minor modes."
     (modify-syntax-entry ?\[ "(]" table)
     (modify-syntax-entry ?\] ")[" table)
     table)
-  "Syntax table used in `yard-meta-mode'.")
+  "Syntax table used in `y-meta-mode'.")
 
-(define-derived-mode yard-meta-mode lisp-mode
+(define-derived-mode y-meta-mode lisp-mode
   "Meta"
   "Major mode for editing documents using the Meta embedded
 DSL (as Embedded in Common Lisp)."
-  :syntax-table yard-meta-mode-syntax-table
+  :syntax-table y-meta-mode-syntax-table
   (define-key paredit-mode-map
     (kbd "{") 'paredit-open-curly)
   (define-key paredit-mode-map
     (kbd "}") 'paredit-close-curly))
 
-(defun yard-sort-words (reverse beginning end)
-  "Sort words in region alphabetically. Prefixed with negative
-\\[universal-argument], sorts in reverse.
-
-The variable `sort-fold-case' determines whether alphabetic case
-affects the sort order.
-
-See `sort-regexp-fields'."
-  (interactive "*P\nr")
-  (sort-regexp-fields reverse "\\w+" "\\&" beginning end))
-
-(defun yard-get-environment-path ()
-  "Return a list of the paths in the environment variable PATH."
-  (split-string (getenv "PATH") path-separator))
-
-(defvar yard-package-archives
-  '(("melpa-stable" . "http://stable.melpa.org/packages/")
-    ("org" . "http://orgmode.org/elpa/")))
-
-(defun yard-package-install (feature)
+(defun y-package-install (package)
+  "Makes best effort to install PACKAGE as if with
+`package-install'. Returns PACKAGE if successful, otherwise nil."
   (when (require 'package nil t)
     (unless package--initialized
-      (package-initialize)
-      (setq package-archives (append yard-package-archives package-archives)))
-    (unless package-archive-contents
-      (package-refresh-contents))
-    (unless (package-installed-p feature)
-      (ignore-errors (package-install feature)))))
+      (package-initialize t))
+    (if (package-installed-p package)
+        package
+      (unless package-archive-contents
+        (package-refresh-contents))
+      (and (ignore-errors (package-install package)) package))))
 
-(defun yard-require (feature &optional filename)
+(defun y-require (feature &optional filename noerror)
   "If FEATURE is not loaded, load it as if with `require'. If
 unsuccessful, install the package FEATURE as with
 `package-install' and try again.
@@ -175,104 +252,33 @@ unsuccessful, install the package FEATURE as with
 When FEATURE is successfuly loaded the return value is FEATURE,
 otherwise nil."
   (or (require feature filename t)
-      (and (yard-package-install feature)
-           (require feature filename t))))
+      (y-package-install feature)
+      (require feature filename noerror)))
 
-(defun yard-locate-feature* (feature)
-  "Show the precise filename which provides FEATURE.
-
-If FEATURE cannot be located the return value is nil."
-  (find-lisp-object-file-name feature (symbol-function feature)))
-
-(defun yard-locate-feature (feature)
-  "Show the precise filename which provides FEATURE. If
-unsuccessful, require FEATURE as with `yard-require' and try
-again.
-
-If FEATURE cannot be located, the return value is nil."
-  (or (funcall yard-locate-feature* feature)
-      (and (yard-require feature)
-           (funcall yard-locate-feature* feature))))
-
-(defun yard-optimistically-locate-feature (feature &optional filename)
-  "If FILENAME is nil (which is the default) Locate FEATURE as
-with `locate-library' using the FEATURE's symbol name, otherwise,
-use FILENAME. If unsuccessful, install the package FEATURE as
-with `yard-package-install' and try again.
-
-When successful show the precise filename where FEATURE is
-assumed to be provided, otherwise nil."
-  (let ((feature-name (or filename (symbol-name feature))))
-    (or (locate-library feature-name)
-        (and (yard-package-install feature)
-             (locate-library feature-name)))))
-
-(defmacro yard-flet (bindings &rest body)
-  "Make temporary dynamic function bindings as if by `fset'.
-
-\(fn ((FUNC ARGLIST BODY...) ...) FORM...)"
-  (let ((symbol-functions-symbol (make-symbol "symbol-functions")))
-    `(let ((,symbol-functions-symbol
-            (list ,@(mapcar (lambda (binding)
-                              (let ((func (car binding)))
-                                `(cons ',func (symbol-function ',func))))
-                            bindings))))
-       ,@(mapcar (lambda (binding)
-                   (let ((func (car binding))
-                         (arglist (cadr binding))
-                         (body (cddr binding)))
-                     `(fset ',func (lambda ,arglist ,@body))))
-                 bindings)
-       (prog1
-           (progn ,@body)
-         (dolist (binding ,symbol-functions-symbol)
-           (fset (car binding) (cdr binding)))))))
-
-(defun yard-do-nothing ()
-  "Does nothing and returns non-nil."
-  (interactive) t)
-
-(defun yard-display-prefix (arg)
-  "Display the value of the raw prefix ARG."
-  (interactive "P")
-  (message "%s" arg))
-
-(defun yard-quit-other-window (&optional kill)
-  "Quits the other window as if by `quit-window'"
-  (interactive)
-  (quit-window kill (next-window)))
-
-(defun yard-add-hooks (hooks function)
-  "Add to the value of each hook in HOOKS the function FUNCTION
-as if by `add-hook'."
-  (dolist (hook hooks) (add-hook hook function)))
-
-;;; Facilities to make navigating Emacs Lisp more like navigating
-;;; Common Lisp with slime.
-(defun yard-push-find-symbol-stack () 
+(defun y-push-find-symbol-stack () 
   (ring-insert find-tag-marker-ring (point-marker)))
 
-(defun yard-pop-find-symbol-stack ()
+(defun y-pop-find-symbol-stack ()
   (interactive)
   (pop-tag-mark))
 
-(defun yard-find-symbol (symbol type)
+(defun y-find-symbol (symbol type)
   (find-function-do-it symbol
                        (if (eq type 'defun) nil)
                        (lambda (buffer-or-name)
-                         (yard-push-find-symbol-stack)
+                         (y-push-find-symbol-stack)
                          (switch-to-buffer buffer-or-name))))
 
-(defun yard-find-symbol-other-window (symbol type)
+(defun y-find-symbol-other-window (symbol type)
   (save-selected-window
     (find-function-do-it symbol
                          (if (eq type 'defun) nil)
                          'switch-to-buffer-other-window)))
 
-(defun yard-find-function-at-point (&optional other-window)
+(defun y-find-function-at-point (&optional other-window)
   (interactive "P")
   (let ((symbol (function-called-at-point)))
     (when symbol
       (if other-window
-          (yard-find-symbol-other-window symbol 'defun)
-        (yard-find-symbol symbol 'defun)))))
+          (y-find-symbol-other-window symbol 'defun)
+        (y-find-symbol symbol 'defun)))))
