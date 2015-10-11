@@ -16,15 +16,20 @@
 ;; control.
 (define-key slime-inspector-mode-map (kbd "<mouse-6>") nil)
 (define-key slime-inspector-mode-map (kbd "<mouse-7>") nil)
-(define-key slime-inspector-mode-map (kbd "<mouse-8>") 'slime-inspector-next)
-(define-key slime-inspector-mode-map (kbd "<mouse-9>") 'slime-inspector-pop)
+(define-key slime-inspector-mode-map (kbd "<mouse-8>") 'slime-inspector-pop)
+(define-key slime-inspector-mode-map (kbd "<mouse-9>") 'slime-inspector-next)
 
 (define-key slime-repl-mode-map
   (kbd "<mouse-1>") 'slime-inspect-presentation-at-mouse)
 
-(setq slime-complete-symbol-function 'slime-fuzzy-complete-symbol)
+(setq slime-inspector-insert-ispec-function
+      'slime-presentation-inspector-insert-ispec)
 
-;; Unicode characters from and to Lisp.
+(setq display-buffer-alist 
+      '(("^\\*sldb" . (y-display-buffer-previous-window))))
+
+;; Rearranging the documentation for clarity: "Coding system used to
+;; transmit characters between Emacs and the Lisp system.".
 (setq slime-net-coding-system 'utf-8-unix)
 
 ;; HACK: Don't clobber Paredit's backspace.

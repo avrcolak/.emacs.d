@@ -58,6 +58,15 @@ as if by `add-hook'."
                           (nconc (directory-files directory t "[[:word:]]+")
                                  subdirectories)))))))
 
+(defmacro y-with-point-at-click (function)
+  "Expands to a command which first moves the point to the
+position clicked on with the mouse, and then calls FUNCTION
+interactively."
+  `(lambda (event)
+     (interactive "@e")
+     (mouse-set-point event)
+     (call-interactively ,function)))
+
 (defun y-do-nothing ()
   "Does nothing and returns non-nil."
   (interactive) t)
@@ -235,14 +244,11 @@ DSL (as Embedded in Common Lisp)."
 (defun y-package-install (package)
   "Makes best effort to install PACKAGE as if with
 `package-install'. Returns PACKAGE if successful, otherwise nil."
-  (when (require 'package nil t)
-    (unless package--initialized
-      (package-initialize t))
-    (if (package-installed-p package)
-        package
-      (unless package-archive-contents
-        (package-refresh-contents))
-      (and (ignore-errors (package-install package)) package))))
+  (if (package-installed-p package)
+      package
+    (unless package-archive-contents
+      (package-refresh-contents))
+    (and (ignore-errors (package-install package)) package)))
 
 (defun y-require (feature &optional filename noerror)
   "If FEATURE is not loaded, load it as if with `require'. If
@@ -282,3 +288,24 @@ otherwise nil."
       (if other-window
           (y-find-symbol-other-window symbol 'defun)
         (y-find-symbol symbol 'defun)))))
+
+(defvar y-buffer-windows '())
+
+(defun y-display-buffer-previous-window (buffer alist)
+  "Displays BUFFER in a window previously showing a buffer with
+the same name, and displayed with this command.
+
+If no such window exists, displays BUFFER as if with
+`display-buffer-popup-window'."
+  (let* ((buffer-name (buffer-name buffer))
+         (assoc (assoc buffer-name y-buffer-windows))
+         (previous-window (cdr assoc))
+         (window
+          (if (and (window-live-p previous-window) previous-window)
+              (display-buffer-in-previous-window
+               buffer
+               (append alist `((previous-window . ,previous-window))))
+            (display-buffer-pop-up-window buffer alist))))
+    (setq y-buffer-windows (delete assoc y-buffer-windows))
+    (push (cons buffer-name window) y-buffer-windows)
+    window))
