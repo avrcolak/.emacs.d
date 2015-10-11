@@ -58,6 +58,8 @@
 ;; Make sure, no matter what, ediff uses one frame.
 (setq ediff-window-setup-function 'ediff-setup-windows-plain)
 
+(setq even-window-heights nil)
+
 ;; Minibuffer tab completion.
 (icomplete-mode)
 
@@ -66,11 +68,11 @@
   (ido-everywhere))
 
 ;; Slightly simplified by preferring ansi-term defaults.
-(when (require 'term nil t)
+(eval-after-load 'term
   ;; Many programs (including grml zsh) (seem to) assume this
   ;; behavior.
-  (setq term-scroll-to-bottom-on-output 'this
-        term-scroll-show-maximum-output t))
+  '(setq term-scroll-to-bottom-on-output 'this
+         term-scroll-show-maximum-output t))
 
 ;; Follow compile errors with tab.
 (add-hook 'compilation-mode-hook 'next-error-follow-minor-mode)
@@ -78,6 +80,8 @@
 ;; By default, moving the point past the bottom of a page in docview
 ;; does not jump to next page.
 (setq doc-view-continuous t)
+
+(setq ispell-dictionary "en_GB")
 
 ;; Enable some "confusing" commands.
 (put 'set-goal-column 'disabled nil)
@@ -109,19 +113,17 @@
       mouse-yank-at-point t)
 
 (define-key emacs-lisp-mode-map (kbd "<C-S-mouse-1>")
-  (lambda (event prefix-arg)
-    (interactive "@e
-P")
-    (mouse-set-point event)
-    (y-find-function-at-point prefix-arg)))
+  (y-with-point-at-click 'y-find-function-at-point))
 
-(define-key emacs-lisp-mode-map (kbd "<mouse-9>")
+(define-key emacs-lisp-mode-map (kbd "<mouse-8>")
   'y-pop-find-symbol-stack)
 
-(when (require 'help-mode nil t)
-  (define-key help-mode-map (kbd "<mouse-8>") 'help-go-forward)
-  (define-key help-mode-map (kbd "<mouse-9>") 'help-go-back))
+(eval-after-load 'help-mode
+  '(progn
+     (define-key help-mode-map (kbd "<mouse-8>") 'help-go-back)
+     (define-key help-mode-map (kbd "<mouse-9>") 'help-go-forward)))
 
-(when (require 'Info-mode nil t)
-  (define-key Info-mode-map (kbd "<mouse-8>") 'Info-history-forward)
-  (define-key Info-mode-map (kbd "<mouse-9>") 'Info-history-back))
+(eval-after-load 'Info-mode
+  '(progn
+     (define-key Info-mode-map (kbd "<mouse-8>") 'Info-history-back)
+     (define-key Info-mode-map (kbd "<mouse-9>") 'Info-history-forward)))
