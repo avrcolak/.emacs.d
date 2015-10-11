@@ -7,8 +7,13 @@
   (load custom-file))
 
 (setq package-archives
-      '(("melpa-stable" . "http://stable.melpa.org/packages/")
+      '(("gnu" . "https://elpa.gnu.org/packages/")
+        ("melpa-stable" . "http://stable.melpa.org/packages/")
         ("org" . "http://orgmode.org/elpa/")))
+
+;; Setup package load paths.
+(when (require 'package nil t)
+  (package-initialize))
 
 (add-to-list 'load-path "~/.emacs.d/lisp")
 (load "y")
