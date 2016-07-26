@@ -39,5 +39,6 @@
                 "markdown-rc"
                 "go-mode-rc"
                 "go-complete-rc"
-                "go-eldoc-rc"))
+                "go-eldoc-rc"
+                "google-c-style-rc"))
     (with-demoted-errors "Error: %S" (load rc))))

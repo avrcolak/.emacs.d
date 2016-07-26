@@ -10,6 +10,9 @@
 
 (setq inhibit-startup-screen t)
 
+(add-hook 'after-make-frame-functions
+          (lambda (&optional frame) (xterm-mouse-mode 1)))
+
 ;; Empirically, Emacs on Windows and OS X has a very nice default
 ;; font. On the other hand, the systems which feature a GTK Emacs are
 ;; unlikely to have a very servicable default. GNU's FreeMono is a
@@ -67,12 +70,13 @@
   (ido-mode 1)
   (ido-everywhere))
 
-;; Slightly simplified by preferring ansi-term defaults.
 (eval-after-load 'term
   ;; Many programs (including grml zsh) (seem to) assume this
   ;; behavior.
-  '(setq term-scroll-to-bottom-on-output 'this
-         term-scroll-show-maximum-output t))
+  '(progn (setq term-scroll-to-bottom-on-output 'this
+                term-scroll-show-maximum-output t)
+          ;; This is the ansi-term default, but not serial-term.
+          (term-set-escape-char ?\C-x)))
 
 ;; Follow compile errors with tab.
 (add-hook 'compilation-mode-hook 'next-error-follow-minor-mode)
