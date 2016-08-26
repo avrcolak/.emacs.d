@@ -1,6 +1,6 @@
 ;;; Simple rc to configure ace-window.
 
-(y-require 'ace-window)
+(y-pseudo-require 'ace-window)
 
 (global-set-key (kbd "C-x o") 'ace-window)
 

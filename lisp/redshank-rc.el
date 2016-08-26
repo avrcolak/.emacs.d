@@ -1,7 +1,7 @@
 ;;; A simple rc to hook redshank onto various modes for editing Common
 ;;; Lisp.
 
-(y-require 'redshank)
+(y-pseudo-require 'redshank)
 
 (y-add-hooks '(inferior-lisp-mode-hook
                lisp-mode-hook

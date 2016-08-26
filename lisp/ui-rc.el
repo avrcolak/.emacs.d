@@ -10,8 +10,25 @@
 
 (setq inhibit-startup-screen t)
 
-(add-hook 'after-make-frame-functions
-          (lambda (&optional frame) (xterm-mouse-mode 1)))
+(add-hook 'after-make-frame-functions 'y-run-after-make-frame-hooks)
+
+;; GTK Emacsen use GTK themes, and may have disturbing default colors.
+(add-hook 'y-after-make-window-system-frame-hook
+          (lambda ()
+            (set-background-color "white")
+            (set-foreground-color "black")))
+
+(add-hook 'y-after-make-terminal-frame-hook
+          (lambda ()
+            (xterm-mouse-mode 1)))
+
+;; Call `y-run-after-make-frame-hooks' for the initial frame as well.
+(defconst y-initial-frame (selected-frame)
+  "The frame (if any) active during Emacs initialization.")
+
+(add-hook 'after-init-hook
+          (lambda () (when y-initial-frame
+                       (y-run-after-make-frame-hooks y-initial-frame))))
 
 ;; Empirically, Emacs on Windows and OS X has a very nice default
 ;; font. On the other hand, the systems which feature a GTK Emacs are

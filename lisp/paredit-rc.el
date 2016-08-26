@@ -1,7 +1,7 @@
 ;;; Simple rc to hook paredit onto various s-expression language
 ;;; modes.
 
-(y-require 'paredit)
+(y-pseudo-require 'paredit)
 
 (y-add-hooks '(emacs-lisp-mode-hook
                ielm-mode-hook

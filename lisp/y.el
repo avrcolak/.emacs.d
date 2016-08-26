@@ -250,16 +250,15 @@ DSL (as Embedded in Common Lisp)."
       (package-refresh-contents))
     (and (ignore-errors (package-install package)) package)))
 
-(defun y-require (feature &optional filename noerror)
-  "If FEATURE is not loaded, load it as if with `require'. If
-unsuccessful, install the package FEATURE as with
-`package-install' and try again.
+(defun y-pseudo-require (package &optional noerror)
+  "Install PACKAGE as if with `y-package-install'. If unsuccessful,
+attempt to `load' the printname of PACKAGE concatenated with
+\"-autoloads\".
 
-When FEATURE is successfuly loaded the return value is FEATURE,
-otherwise nil."
-  (or (require feature filename t)
-      (y-package-install feature)
-      (require feature filename noerror)))
+Normally return PACKAGE."
+  (or (y-package-install package)
+      (and (load (concat (symbol-name package) "-autoloads") noerror)
+           package)))
 
 (defun y-push-find-symbol-stack () 
   (ring-insert find-tag-marker-ring (point-marker)))
@@ -309,3 +308,13 @@ If no such window exists, displays BUFFER as if with
     (setq y-buffer-windows (delete assoc y-buffer-windows))
     (push (cons buffer-name window) y-buffer-windows)
     window))
+
+(defvar y-after-make-window-system-frame-hook '())
+
+(defvar y-after-make-terminal-frame-hook '())
+
+(defun y-run-after-make-frame-hooks (frame)
+  (with-selected-frame frame
+    (run-hooks (if window-system
+                   'y-after-make-window-system-frame-hook
+                 'y-after-make-terminal-frame-hook))))

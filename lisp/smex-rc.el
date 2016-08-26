@@ -1,6 +1,7 @@
 ;;; Simple rc to configure smex.
 
-(y-require 'smex)
+(y-pseudo-require 'smex)
+(require 'smex)
 
 ;; HACK: smex version 3.0 requires a newer `execute-extended-command',
 ;; but loads even if it is not present (newer versions signal an
