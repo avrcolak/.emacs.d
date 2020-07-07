@@ -7,9 +7,15 @@
   (load custom-file))
 
 (setq package-archives
-      '(("gnu" . "https://elpa.gnu.org/packages/")
-        ("melpa-stable" . "http://stable.melpa.org/packages/")
-        ("org" . "http://orgmode.org/elpa/")))
+      '(("elpa.gnu.org" . "https://elpa.gnu.org/packages/")
+        ("stable.melpa.org" . "https://stable.melpa.org/packages/")
+	("melpa.org" . "https://melpa.org/packages/")
+        ("orgmode.org" . "https://orgmode.org/elpa/"))
+      package-archive-priorities
+      '(("elpa.gnu.org" . 10)
+	("stable.melpa.org" . 5)
+	("melpa.org" . 0)
+	("orgmode.org" . 15)))
 
 ;; Setup package load paths.
 (when (require 'package nil t)
@@ -25,7 +31,6 @@
                 "ui-rc"
                 "edit-rc"
                 "smex-rc"
-                "ido-ubiquitous-rc"
                 "ace-window-rc"
                 "paredit-rc"
                 "mouse-copy-rc"
@@ -34,6 +39,5 @@
                 "redshank-rc"
                 "imaxima-rc"
                 "wolfram-mode-rc"
-                "gambit-rc"
-                "google-c-style-rc"))
+                "gambit-rc"))
     (with-demoted-errors "Error: %S" (load rc))))

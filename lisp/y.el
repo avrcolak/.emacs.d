@@ -39,6 +39,15 @@
          (dolist (binding ,symbol-functions-symbol)
            (fset (car binding) (cdr binding)))))))
 
+(defmacro y-with-point-at-click (function)
+  "Expands to a command which first moves the point to the
+position clicked on with the mouse, and then calls FUNCTION
+interactively."
+  `(lambda (event)
+     (interactive "@e")
+     (mouse-set-point event)
+     (call-interactively ,function)))
+
 (defun y-add-hooks (hooks function)
   "Add to the value of each hook in HOOKS the function FUNCTION
 as if by `add-hook'."
@@ -48,7 +57,7 @@ as if by `add-hook'."
   "Return a list of the paths in the environment variable PATH."
   (split-string (getenv "PATH") path-separator))
 
-(defun y-find-subdirectories (directories) 
+(defun y-find-subdirectories (directories)
   "Returns a list of the subdirectories for each directory in DIRECTORIES."
   (delq nil
         (mapcar (lambda (name) (and (file-directory-p name) name))
@@ -57,15 +66,6 @@ as if by `add-hook'."
                     (setq subdirectories
                           (nconc (directory-files directory t "[[:word:]]+")
                                  subdirectories)))))))
-
-(defmacro y-with-point-at-click (function)
-  "Expands to a command which first moves the point to the
-position clicked on with the mouse, and then calls FUNCTION
-interactively."
-  `(lambda (event)
-     (interactive "@e")
-     (mouse-set-point event)
-     (call-interactively ,function)))
 
 (defun y-do-nothing ()
   "Does nothing and returns non-nil."
@@ -139,52 +139,6 @@ the current frame."
       (insert "#+BEGIN_SRC\n")
       (backward-char))))
 
-(defun y-slime-send-dwim (arg)
-  "Send the code form you want to the buffer named by
-`slime-output-buffer' (Do What I Mean). If a region is active, it
-is saved and yanked to the buffer. Else, if the point is at an
-opening paren, the sexp immediately following the point is saved
-and yanked. Else, if the point is directly after a closing paren,
-the sexp immediately preceding the point is saved and yanked.
-Else, the top level sexp enclosing the point is saved and yanked.
-
-With ARG, evaluate the resulting output buffer input string."
-  (interactive "P")
-  (save-excursion
-    (cond (mark-active
-           (copy-region-as-kill (mark) (point)))
-          ((eq (char-after) ?\()
-           (let ((beg (point))
-                 (end (save-excursion (forward-sexp) (point))))
-             (copy-region-as-kill beg end)))
-          ((eq (char-before) ?\))
-           (let ((end (point))
-                 (beg (save-excursion (backward-sexp) (point))))
-             (copy-region-as-kill beg end)))
-          (t
-           (let* ((beg (progn (beginning-of-defun)
-                              (point)))
-                 (end (save-excursion (end-of-defun) (point))))
-             (copy-region-as-kill beg end))))
-      (switch-to-buffer-other-window (slime-output-buffer))
-      (goto-char (point-max))
-      (when (string-match "\n\\|" (car kill-ring))
-        (slime-repl-newline-and-indent))
-      (yank)
-      (when arg
-        (slime-repl-return))))
-
-(defun y-set-lisp-indent (indent-function)
-  "Shadows `lisp-indent-function' with a buffer local variable
-set to INDENT-FUNCTION."
-  (set (make-local-variable 'lisp-indent-function) indent-function))
-
-(defun y-set-elisp-indent ()
-  (y-set-lisp-indent 'lisp-indent-function))
-
-(defun y-set-common-lisp-indent ()
-  (y-set-lisp-indent 'common-lisp-indent-function))
-
 (defvar y-root-find-file-hook nil
   "List of functions to be called after a buffer is loaded from a
 file with `y-root-find-file'.")
@@ -195,29 +149,6 @@ file with `y-root-find-file'.")
   (find-file (concat "/sudo:root@localhost:"
                      (read-file-name "Find file (as root): ")))
   (run-hooks y-root-find-file-hook))
-
-(defvar y-auto-minor-mode-alist ()
-  "Alist of file name patterns vs corresponding minor mode
-functions. Closely mimics `auto-mode-alist'.")
-
-(defun y-set-auto-minor-mode ()
-  "Select minor modes appropriate for curent buffer.
-
-To find the right minor modes, this function compares the
-filename against all entries in `y-auto-minor-mode-alist' and
-enables the specified minor modes."
-  (when buffer-file-name
-    (let ((remote-id (file-remote-p buffer-file-name))
-          (name buffer-file-name))
-      ;; Clean up the file name for this buffer.
-      (setq name (file-name-sans-versions name))
-      (when (and (stringp remote-id)
-                 (string-match-p (regexp-quote remote-id) name))
-        (setq name (substring name (match-end 0))))
-      (dolist (entry y-auto-minor-mode-alist)
-        (when (and (car entry) (cdr entry))
-          (if (string-match (car entry) name)
-              (funcall (cdr entry))))))))
 
 (defvar y-meta-mode-syntax-table
   (let ((table (make-syntax-table lisp-mode-syntax-table)))
@@ -260,34 +191,6 @@ Normally return PACKAGE."
       (and (load (concat (symbol-name package) "-autoloads") noerror)
            package)))
 
-(defun y-push-find-symbol-stack () 
-  (ring-insert find-tag-marker-ring (point-marker)))
-
-(defun y-pop-find-symbol-stack ()
-  (interactive)
-  (pop-tag-mark))
-
-(defun y-find-symbol (symbol type)
-  (find-function-do-it symbol
-                       (if (eq type 'defun) nil)
-                       (lambda (buffer-or-name)
-                         (y-push-find-symbol-stack)
-                         (switch-to-buffer buffer-or-name))))
-
-(defun y-find-symbol-other-window (symbol type)
-  (save-selected-window
-    (find-function-do-it symbol
-                         (if (eq type 'defun) nil)
-                         'switch-to-buffer-other-window)))
-
-(defun y-find-function-at-point (&optional other-window)
-  (interactive "P")
-  (let ((symbol (function-called-at-point)))
-    (when symbol
-      (if other-window
-          (y-find-symbol-other-window symbol 'defun)
-        (y-find-symbol symbol 'defun)))))
-
 (defvar y-buffer-windows '())
 
 (defun y-display-buffer-previous-window (buffer alist)
@@ -309,12 +212,25 @@ If no such window exists, displays BUFFER as if with
     (push (cons buffer-name window) y-buffer-windows)
     window))
 
-(defvar y-after-make-window-system-frame-hook '())
+(defvar y-auto-minor-mode-alist ()
+  "Alist of file name patterns vs corresponding minor mode
+functions. Closely mimics `auto-mode-alist'.")
 
-(defvar y-after-make-terminal-frame-hook '())
+(defun y-set-auto-minor-mode ()
+  "Select minor modes appropriate for curent buffer.
 
-(defun y-run-after-make-frame-hooks (frame)
-  (with-selected-frame frame
-    (run-hooks (if window-system
-                   'y-after-make-window-system-frame-hook
-                 'y-after-make-terminal-frame-hook))))
+To find the right minor modes, this function compares the
+filename against all entries in `y-auto-minor-mode-alist' and
+enables the specified minor modes."
+  (when buffer-file-name
+    (let ((remote-id (file-remote-p buffer-file-name))
+          (name buffer-file-name))
+      ;; Clean up the file name for this buffer.
+      (setq name (file-name-sans-versions name))
+      (when (and (stringp remote-id)
+                 (string-match-p (regexp-quote remote-id) name))
+        (setq name (substring name (match-end 0))))
+      (dolist (entry y-auto-minor-mode-alist)
+        (when (and (car entry) (cdr entry))
+          (if (string-match (car entry) name)
+              (funcall (cdr entry))))))))

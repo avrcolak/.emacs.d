@@ -1,9 +1,6 @@
 ;;; A simple rc to configure Emacs' editing behavior.
 
-;; Spaces instead of tabs.
-(setq-default tab-width 4
-              indent-tabs-mode nil)
-(setq tab-stop-list (number-sequence 4 120 4))
+(delete-selection-mode)
 
 ;; "stroustrup" and "k&r" in lieu of "gnu".
 (setq-default c-default-style '((java-mode . "java")
@@ -13,6 +10,17 @@
 
 ;; Java is conventionally camel cased.
 (add-hook 'java-mode-hook 'subword-mode)
+
+(defun y-set-lisp-indent (indent-function)
+  "Shadows `lisp-indent-function' with a buffer local variable
+set to INDENT-FUNCTION."
+  (set (make-local-variable 'lisp-indent-function) indent-function))
+
+(defun y-set-elisp-indent ()
+  (y-set-lisp-indent 'lisp-indent-function))
+
+(defun y-set-common-lisp-indent ()
+  (y-set-lisp-indent 'common-lisp-indent-function))
 
 ;; Use buffer local 'lisp-indent-function values corresponding to the
 ;; mode.
