@@ -1,14 +1,29 @@
 ;;; A simple rc to configure Emacs' interface with the host OS.
 
-;; No ad-hoc (sometimes redundant) versioning.
-(setq make-backup-files nil)
+;; No droppings of various kinds.
+(setq make-backup-files nil
+      auto-save-default nil
+      create-lockfiles nil)
+
+;; Don't clobber symlinks.
+(setq backup-by-copying nil)
 
 ;; Use clobbering sessions.
 (setq desktop-dirname "~/.emacs.d/"
       desktop-save t
       desktop-load-locked-desktop t)
 
-(desktop-save-mode)
+;; Make a better effort to restore frames, in case we are starting as
+;; a daemon.
+(run-at-time "1 sec" nil
+             (lambda ()
+               (progn
+                 (desktop-save-mode)
+                 (desktop-read))))
+
+;; Treat disk as image.
+(add-hook 'focus-out-hook 'y-save-all-no-questions)
+(global-auto-revert-mode)
 
 ;; Restoring a session sometimes opens a file with unsafe file local
 ;; variables. Emacs' default behavior is to ask the user for
@@ -44,3 +59,6 @@
 ;; Oddly, the environment PATH and exec-path may differ after loading
 ;; e.g. on Mac OS X.
 (setq exec-path (delete-dups (append (y-get-environment-path) exec-path)))
+
+;; Capture <ALT>-<Tab> in Windows.
+(w32-register-hot-key [M-tab])

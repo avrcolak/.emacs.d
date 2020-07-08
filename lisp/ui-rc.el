@@ -3,7 +3,6 @@
 ;; Declutter the GUI.
 (setq default-frame-alist
       '((tool-bar-lines . 0)
-        (background-color . "honeydew")
         (vertical-scroll-bars . nil)
         (left-fringe . 0)
         (right-fringe . 0)))
@@ -13,16 +12,39 @@
 ;; If nil, input (keyboard or mouse) interrupts redisplay.
 (setq redisplay-dont-pause t)
 
+(when (require 'recentf nil t)
+  (recentf-mode))
+
+;; Empirically, if starting in daemon mode, `font-family-list' is nil
+;; at the time this rc file, and most of frame related "standard
+;; hooks", are evaluated. Since setting a non existent font results in
+;; an unpleasant look, check `font-family-list' on `focus-in-hook'.
+;; Likewise, this is a good place to check `display-graphic-p' and
+;; load a theme.
+(defun y-on-focus-in-once ()
+  (when (display-graphic-p)
+    (load-theme 'y)
+    (when (member "Iosevka SS09" (font-family-list))
+      (set-frame-font "Iosevka SS09 10" t t)
+      (remove-hook 'focus-in-hook 'y-on-focus-in-once))))
+
+(add-hook 'focus-in-hook 'y-on-focus-in-once)
+
 ;; By default, only the row number is shown in the modeline.
 (column-number-mode)
 
 ;; Highlight matching parenthesis at point.
 (show-paren-mode)
 
+(global-whitespace-mode)
+
 (setq-default doc-view-resolution 300)
 
 ;; Prompt keystrokes quickly.
 (setq echo-keystrokes 0.0166)
+
+;; Prefer mini buffer to system dialogs.
+(setq use-dialog-box nil)
 
 ;; By default, Emacs rings the bell on end of buffer, and other
 ;; unecessary times.

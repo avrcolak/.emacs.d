@@ -8,6 +8,16 @@
                                 (c++-mode . "stroustrup")
                                 (other . "k&r")))
 
+;; Default to 4 spaces.
+(setq-default indent-tabs-mode nil)
+(setq-default tab-width 4)
+
+;; Prefer tabs for C.
+(defun y-enable-indent-tabs-mode ()
+  (setq indent-tabs-mode t))
+
+(add-hook 'c-mode-hook 'y-enable-indent-tabs-mode)
+
 ;; Java is conventionally camel cased.
 (add-hook 'java-mode-hook 'subword-mode)
 

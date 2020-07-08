@@ -9,13 +9,13 @@
 (setq package-archives
       '(("elpa.gnu.org" . "https://elpa.gnu.org/packages/")
         ("stable.melpa.org" . "https://stable.melpa.org/packages/")
-	("melpa.org" . "https://melpa.org/packages/")
+        ("melpa.org" . "https://melpa.org/packages/")
         ("orgmode.org" . "https://orgmode.org/elpa/"))
       package-archive-priorities
       '(("elpa.gnu.org" . 10)
-	("stable.melpa.org" . 5)
-	("melpa.org" . 0)
-	("orgmode.org" . 15)))
+        ("stable.melpa.org" . 5)
+        ("melpa.org" . 0)
+        ("orgmode.org" . 15)))
 
 ;; Setup package load paths.
 (when (require 'package nil t)
@@ -25,6 +25,8 @@
 (load "y")
 (setq load-path
       (append (y-find-subdirectories '("~/.emacs.d/lisp")) load-path))
+
+(add-to-list 'custom-theme-load-path "~/.emacs.d/lisp/themes")
 
 (let ((debug-on-error nil))
   (dolist (rc '("os-rc"
@@ -39,5 +41,6 @@
                 "redshank-rc"
                 "imaxima-rc"
                 "wolfram-mode-rc"
-                "gambit-rc"))
+                "gambit-rc"
+                "rainbow-mode-rc"))
     (with-demoted-errors "Error: %S" (load rc))))

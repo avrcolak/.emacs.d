@@ -234,3 +234,7 @@ enables the specified minor modes."
         (when (and (car entry) (cdr entry))
           (if (string-match (car entry) name)
               (funcall (cdr entry))))))))
+
+(defun y-save-all-no-questions ()
+  (interactive)
+  (save-some-buffers t))
